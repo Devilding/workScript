@@ -2,8 +2,10 @@ import sys
 import os
 from PyQt5.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, 
                             QHBoxLayout, QPushButton, QLabel, QFileDialog,
-                            QListWidget, QLineEdit, QMessageBox, QProgressBar)
+                            QListWidget, QLineEdit, QMessageBox, QProgressBar,
+                            QFrame)
 from PyQt5.QtCore import Qt, QTimer
+from PyQt5.QtGui import QFont, QColor, QPalette
 from merge_excel import merge_excel_files
 
 class ExcelMergerApp(QMainWindow):
@@ -16,12 +18,54 @@ class ExcelMergerApp(QMainWindow):
         self.setWindowTitle('Excel 合并工具')
         self.setMinimumSize(600, 400)
         
+        # 设置iOS风格配色
+        palette = self.palette()
+        palette.setColor(QPalette.Window, QColor(242, 242, 247))
+        palette.setColor(QPalette.WindowText, QColor(28, 28, 30))
+        palette.setColor(QPalette.Base, QColor(255, 255, 255))
+        palette.setColor(QPalette.AlternateBase, QColor(242, 242, 247))
+        palette.setColor(QPalette.Button, QColor(0, 122, 255))
+        palette.setColor(QPalette.ButtonText, QColor(255, 255, 255))
+        self.setPalette(palette)
+        
+        # 设置字体
+        font = QFont("SF Pro Text", 13)
+        self.setFont(font)
+        
         # 主窗口布局
         main_widget = QWidget()
         self.setCentralWidget(main_widget)
         layout = QVBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(10)
+        layout.setContentsMargins(20, 20, 20, 20)
+        layout.setSpacing(15)
+        
+        # 添加圆角效果
+        main_widget.setStyleSheet("""
+            QWidget {
+                background-color: #F2F2F7;
+                border-radius: 12px;
+            }
+            QPushButton {
+                background-color: #5AC8FA;
+                color: white;
+                border-radius: 8px;
+                padding: 8px 16px;
+                font-size: 14px;
+            }
+            QPushButton:hover {
+                background-color: #4AB2E2;
+            }
+            QLineEdit, QListWidget {
+                border: 1px solid #C6C6C8;
+                border-radius: 8px;
+                padding: 8px;
+                background-color: white;
+            }
+            QLabel {
+                color: #1C1C1E;
+                font-size: 14px;
+            }
+        """)
         
         # 文件列表区域
         file_select_layout = QHBoxLayout()
@@ -46,18 +90,20 @@ class ExcelMergerApp(QMainWindow):
         browse_button.clicked.connect(self.select_output_path)
         output_layout.addWidget(browse_button)
         
+        layout.addLayout(output_layout)
+        
+        # 文件名输入和打开按钮
+        file_name_layout = QHBoxLayout()
+        self.file_name = QLineEdit()
+        self.file_name.setPlaceholderText("输入输出文件名（不带扩展名）")
+        file_name_layout.addWidget(self.file_name)
+        
         # 打开文件按钮
         self.open_button = QPushButton("打开文件")
         self.open_button.setEnabled(False)
         self.open_button.clicked.connect(self.open_output_file)
-        output_layout.addWidget(self.open_button)
-        
-        layout.addLayout(output_layout)
-        
-        # 文件名输入
-        self.file_name = QLineEdit()
-        self.file_name.setPlaceholderText("输入输出文件名（不带扩展名）")
-        layout.addWidget(self.file_name)
+        file_name_layout.addWidget(self.open_button)
+        layout.addLayout(file_name_layout)
         
         # 进度条
         self.progress = QProgressBar()
@@ -94,6 +140,13 @@ class ExcelMergerApp(QMainWindow):
                 self.open_button.setEnabled(True)
             else:
                 self.open_button.setEnabled(False)
+                
+            # 显示目录下的Excel文件
+            excel_files = [f for f in os.listdir(path) 
+                         if f.lower().endswith(('.xls', '.xlsx'))]
+            if excel_files:
+                self.file_list.clear()
+                self.file_list.addItems([os.path.join(path, f) for f in excel_files])
                 
     def open_output_file(self):
         """打开生成的Excel文件"""
