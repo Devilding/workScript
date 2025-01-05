@@ -3,6 +3,36 @@ import os
 # 导入材料类型枚举
 from material_types import MATERIAL_TYPES as material_types
 
+def calculate_length(filtered):
+    """对扁钢材料进行长度计算"""
+    # 确保DataFrame包含必要的列
+    if '规格' not in filtered.columns:
+        return filtered
+        
+    # 在规格和数量之间插入长度列
+    if '长度' not in filtered.columns:
+        filtered.insert(1, '长度', 0)
+    
+    # 对规格列进行分列处理
+    # 先将x替换为-，统一分隔符
+    #filtered['规格'] = filtered['规格'].str.replace('x', '-')
+    # 清洗规格列数据，去除特殊字符但保留有效数值
+    #filtered['规格'] = filtered['规格'].str.replace(r'[^\d.-XPx]', '', regex=True)
+    
+    split_cols = filtered['规格'].str.split(r'[-XP]', expand=True)
+    a = split_cols[0].fillna('0')
+    b = pd.to_numeric(split_cols[1], errors='coerce').fillna(0)
+    c = pd.to_numeric(split_cols[2], errors='coerce').fillna(0)
+    d = pd.to_numeric(split_cols[3], errors='coerce').fillna(0)
+    e = pd.to_numeric(split_cols[4], errors='coerce').fillna(0)
+    
+    # 计算长度值
+    filtered.loc[a == 'FB', '长度'] = c + 2*d - 10
+    filtered.loc[a == 'FBF', '长度'] = d + 2*e - 10
+    filtered.loc[a == 'FBZ', '长度'] = c + 2*d + 250 - 15
+    
+    return filtered
+
 def merge_excel_files(file_paths, output_path):
     # 创建一个空的DataFrame用于存储合并后的数据
     merged_df = pd.DataFrame()
@@ -44,8 +74,6 @@ def merge_excel_files(file_paths, output_path):
         g_paint = merged_df[(merged_df['表面处理'] == 'G') & 
                           (~merged_df['规格'].str.contains('非标底座', na=False))]
         
-        
-
         # 处理刷漆Y总数据
         if not y_paint.empty:
             # 创建副本以避免修改原始数据
@@ -63,11 +91,19 @@ def merge_excel_files(file_paths, output_path):
                 if not filtered.empty:
                     # 只保留规格和数量两列
                     filtered = filtered[['规格', '数量']]
-                    # 按规格分组并求和数量
-                    filtered = filtered.groupby('规格', as_index=False)['数量'].sum()
-                    # 按规格排序
-                    filtered = filtered.sort_values('规格')
-                    filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
+                    
+                    # 仅对扁钢材料进行长度计算
+                    if material == '扁钢':
+                        filtered = calculate_length(filtered)
+                        # 按规格分组并求和数量
+                        filtered = filtered.groupby('规格', as_index=False).agg({
+                            '长度': 'first',
+                            '数量': 'sum'
+                        })
+                        
+                        # 按规格排序
+                        filtered = filtered.sort_values('规格')
+                        filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
         
         # 处理镀锌G总数据
         if not g_paint.empty:
@@ -86,11 +122,20 @@ def merge_excel_files(file_paths, output_path):
                 if not filtered.empty:
                     # 只保留规格和数量两列
                     filtered = filtered[['规格', '数量']]
-                    # 按规格分组并求和数量
-                    filtered = filtered.groupby('规格', as_index=False)['数量'].sum()
-                    # 按规格排序
-                    filtered = filtered.sort_values('规格')
-                    filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
+                    
+                    # 仅对扁钢材料进行长度计算
+                    if material == '扁钢':
+                        filtered = calculate_length(filtered)
+                    
+                        # 按规格分组并求和数量
+                        filtered = filtered.groupby('规格', as_index=False).agg({
+                            '长度': 'first',
+                            '数量': 'sum'
+                        })
+                        
+                        # 按规格排序
+                        filtered = filtered.sort_values('规格')
+                        filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
 
 if __name__ == "__main__":
     # 获取当前目录下的所有Excel文件（使用完整路径）
