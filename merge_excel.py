@@ -30,6 +30,14 @@ def calculate_length(filtered):
     filtered.loc[a == 'FB', '长度'] = c + 2*d - 10
     filtered.loc[a == 'FBF', '长度'] = d + 2*e - 10
     filtered.loc[a == 'FBZ', '长度'] = c + 2*d + 250 - 15
+
+    filtered = filtered.groupby('规格', as_index=False).agg({
+                        '长度': 'first',
+                        '数量': 'sum'
+                    })
+                    
+    # 按规格排序
+    filtered = filtered.sort_values('规格')
     
     return filtered
 
@@ -95,14 +103,6 @@ def merge_excel_files(file_paths, output_path):
                     # 仅对扁钢材料进行长度计算
                     if material == '扁钢':
                         filtered = calculate_length(filtered)
-                        # 按规格分组并求和数量
-                        filtered = filtered.groupby('规格', as_index=False).agg({
-                            '长度': 'first',
-                            '数量': 'sum'
-                        })
-                        
-                        # 按规格排序
-                        filtered = filtered.sort_values('规格')
                         filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
         
         # 处理镀锌G总数据
@@ -126,15 +126,6 @@ def merge_excel_files(file_paths, output_path):
                     # 仅对扁钢材料进行长度计算
                     if material == '扁钢':
                         filtered = calculate_length(filtered)
-                    
-                        # 按规格分组并求和数量
-                        filtered = filtered.groupby('规格', as_index=False).agg({
-                            '长度': 'first',
-                            '数量': 'sum'
-                        })
-                        
-                        # 按规格排序
-                        filtered = filtered.sort_values('规格')
                         filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
 
 if __name__ == "__main__":
