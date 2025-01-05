@@ -2,7 +2,7 @@ import pandas as pd
 import os
 from material_types import MATERIAL_TYPES as material_types
 
-def calculate_length(filtered):
+def process_flat_bars(filtered):
     """对扁钢材料进行长度计算"""
     if '规格' not in filtered.columns:
         return filtered
@@ -29,7 +29,7 @@ def calculate_length(filtered):
     filtered = filtered.sort_values('规格')
     return filtered
 
-def jizuo_process(filtered):
+def process_pedestal(filtered):
     if not filtered.empty:  
         # 按规格分组并汇总数量
         filtered = filtered.groupby('规格', as_index=False).agg({
@@ -78,6 +78,32 @@ def process_angle_steel(filtered):
     
     return result_df
 
+def process_steel_pipe(filtered):
+    """处理钢管材料"""
+    if filtered.empty:
+        return filtered
+        
+    # 按规格分组并汇总数量
+    filtered = filtered.groupby('规格', as_index=False).agg({
+        '数量': 'sum'
+    })
+    
+    # 添加长度列
+    filtered.insert(1, '长度', 0)
+    
+    # 处理规格字符串
+    for index, row in filtered.iterrows():
+        spec = row['规格']
+        # 舍弃'Ф'前所有字符串
+        spec = spec[spec.find('Ф'):]
+        # 用'-'分隔
+        parts = spec.split('-')
+        if len(parts) > 1:
+            filtered.at[index, '规格'] = parts[0]
+            filtered.at[index, '长度'] = parts[1]
+    
+    return filtered
+
 def merge_excel_files(file_paths, output_path):
     merged_df = pd.DataFrame()
     
@@ -118,14 +144,17 @@ def merge_excel_files(file_paths, output_path):
                 if not filtered.empty:
                     filtered = filtered[['规格', '数量']]
                     if material == '扁钢':
-                        filtered = calculate_length(filtered)
-                        filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
+                        filtered = process_flat_bars(filtered)
+                        #filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
                     if material == '基座':
-                        filtered = jizuo_process(filtered)
-                        filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
+                        filtered = process_pedestal(filtered)
+                        #filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
                     if material == '角钢':
                         filtered = process_angle_steel(filtered)
-                        filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
+                        #filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
+                    if material == '钢管':
+                        filtered = process_steel_pipe(filtered)
+                    filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
 
         if not g_paint.empty:
             g_paint_modified = g_paint.copy()
@@ -135,18 +164,21 @@ def merge_excel_files(file_paths, output_path):
             g_paint_modified.to_excel(writer, sheet_name='镀锌G总', index=False)
 
             for material, prefixes in material_types.items():
-                filtered = g_paint_modified[g_paint_modified['规格'].str.startswith(tuple(prefixes))]
+                filtered = g_paint_modified[g_paint_modified['规格'].str.find(tuple(prefixes))]
                 if not filtered.empty:
                     filtered = filtered[['规格', '数量']]
                     if material == '扁钢':
-                        filtered = calculate_length(filtered)
-                        filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
+                        filtered = process_flat_bars(filtered)
+                        #filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
                     if material == '基座':
-                        filtered = jizuo_process(filtered)
-                        filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
+                        filtered = process_pedestal(filtered)
+                        #filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
                     if material == '角钢':
                         filtered = process_angle_steel(filtered)
-                        filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
+                        #filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
+                    if material == '钢管':
+                        filtered = process_steel_pipe(filtered)
+                    filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
 
 if __name__ == "__main__":
     excel_files = [os.path.join(os.getcwd(), f) 
