@@ -67,18 +67,23 @@ class ExcelMergerApp(QMainWindow):
             }
         """)
         
-        # 文件列表区域
-        file_select_layout = QHBoxLayout()
+        # 文件选择区域
+        file_select_layout = QVBoxLayout()
+        
+        # 输入文件区域
+        input_file_layout = QHBoxLayout()
         self.file_list = QListWidget()
         self.file_list.setSelectionMode(QListWidget.ExtendedSelection)
         
         select_button = QPushButton("选择文件...")
         select_button.clicked.connect(self.select_input_files)
         
-        file_select_layout.addWidget(QLabel("选择Excel文件："))
-        file_select_layout.addWidget(select_button)
+        input_file_layout.addWidget(QLabel("选择要合并的Excel文件："))
+        input_file_layout.addWidget(select_button)
+        file_select_layout.addLayout(input_file_layout)
+        file_select_layout.addWidget(self.file_list)
+        
         layout.addLayout(file_select_layout)
-        layout.addWidget(self.file_list)
         
         # 输出路径选择
         output_layout = QHBoxLayout()
@@ -115,21 +120,52 @@ class ExcelMergerApp(QMainWindow):
         self.status_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(self.status_label)
         
-        # 操作按钮
+        # 操作按钮区域
+        button_frame = QFrame()
+        button_frame.setFrameShape(QFrame.StyledPanel)
         button_layout = QHBoxLayout()
-        merge_button = QPushButton("合并文件")
-        merge_button.clicked.connect(self.merge_files)
-        button_layout.addWidget(merge_button)
+        button_layout.setContentsMargins(10, 10, 10, 10)
         
+        # 合并按钮
+        merge_button = QPushButton("合并文件")
+        merge_button.setStyleSheet("""
+            QPushButton {
+                background-color: #34C759;
+                color: white;
+                font-size: 16px;
+                padding: 12px 24px;
+                min-width: 120px;
+            }
+            QPushButton:hover {
+                background-color: #248A3D;
+            }
+        """)
+        merge_button.clicked.connect(self.merge_files)
+        button_layout.addWidget(merge_button, 1)
+        
+        # 清空按钮
         clear_button = QPushButton("清空列表")
+        clear_button.setStyleSheet("""
+            QPushButton {
+                background-color: #FF3B30;
+                color: white;
+                font-size: 14px;
+                padding: 8px 16px;
+            }
+            QPushButton:hover {
+                background-color: #D70015;
+            }
+        """)
         clear_button.clicked.connect(self.clear_list)
         button_layout.addWidget(clear_button)
-        layout.addLayout(button_layout)
+        
+        button_frame.setLayout(button_layout)
+        layout.addWidget(button_frame)
         
         main_widget.setLayout(layout)
         
     def select_output_path(self):
-        """选择输出路径并显示Excel文件"""
+        """选择输出路径"""
         path = QFileDialog.getExistingDirectory(self, "选择输出目录")
         if path:
             self.output_path.setText(path)
@@ -140,13 +176,6 @@ class ExcelMergerApp(QMainWindow):
                 self.open_button.setEnabled(True)
             else:
                 self.open_button.setEnabled(False)
-                
-            # 显示目录下的Excel文件
-            excel_files = [f for f in os.listdir(path) 
-                         if f.lower().endswith(('.xls', '.xlsx'))]
-            if excel_files:
-                self.file_list.clear()
-                self.file_list.addItems([os.path.join(path, f) for f in excel_files])
                 
     def open_output_file(self):
         """打开生成的Excel文件"""
