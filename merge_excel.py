@@ -61,20 +61,37 @@ def process_angle_steel(filtered):
     
     # 处理带P的规格
     p_df = filtered[filtered['带P']]
-    if not p_df.empty:
+    non_p_df = filtered[~filtered['带P']]
+    if not p_df.empty and not non_p_df.empty:
         p_df = p_df[['规格', '数量']]
         p_df.columns = ['规格_P', '数量_P']
         result_df = pd.concat([result_df, p_df], axis=1)
-    
-    # 处理不带P的规格
-    non_p_df = filtered[~filtered['带P']]
-    if not non_p_df.empty:
         non_p_df = non_p_df[['规格', '数量']]
         non_p_df.columns = ['规格', '数量']
         result_df = pd.concat([result_df, non_p_df], axis=1)
+        result_df = result_df.sort_values(by=['规格', '规格_P'])
+    elif not p_df.empty and non_p_df.empty:
+        p_df = p_df[['规格', '数量']]
+        p_df.columns = ['规格_P', '数量_P']
+        result_df = pd.concat([result_df, p_df], axis=1)
+        result_df = result_df.sort_values(by=['规格_P'])
+    elif not non_p_df.empty and p_df.empty:
+        non_p_df = non_p_df[['规格', '数量']]
+        non_p_df.columns = ['规格', '数量']
+        result_df = pd.concat([result_df, non_p_df], axis=1)
+        result_df = result_df.sort_values(by=['规格'])
+    # 处理不带P的规格
     
+    #if not non_p_df.empty:
+        #non_p_df = non_p_df[['规格', '数量']]
+        #non_p_df.columns = ['规格', '数量']
+        #result_df = pd.concat([result_df, non_p_df], axis=1)
+
+    #删除空值
+    #result_df = result_df.dropna(subset=['规格', '规格_P'])
+    #result_df = result_df.dropna(how='all', axis=1)    
     # 根据规格排序
-    result_df = result_df.sort_values(by=['规格', '规格_P'])
+   #result_df = result_df.sort_values(by=['规格', '规格_P'])
     
     return result_df
 
@@ -93,14 +110,19 @@ def process_steel_pipe(filtered):
     
     # 处理规格字符串
     for index, row in filtered.iterrows():
-        spec = row['规格']
-        # 舍弃'Ф'前所有字符串
-        spec = spec[spec.find('Ф'):]
-        # 用'-'分隔
-        parts = spec.split('-')
-        if len(parts) > 1:
-            filtered.at[index, '规格'] = parts[0]
-            filtered.at[index, '长度'] = int(parts[1])
+        try:
+            spec = str(row['规格'])
+            # 舍弃'Ф'前所有字符串
+            if 'Ф' in spec:
+                spec = spec[spec.find('Ф'):]
+            # 用'-'分隔
+            parts = spec.split('-')
+            if len(parts) > 1:
+                filtered.at[index, '规格'] = parts[0]
+                filtered.at[index, '长度'] = int(parts[1])
+        except Exception as e:
+            print(f"处理钢管规格时出错: {e}, 规格: {spec}")
+            continue
     
     return filtered
 
@@ -108,12 +130,6 @@ def merge_excel_files(file_paths, output_path):
     merged_df = pd.DataFrame()
     
     for file_path in file_paths:
-        #if file_path.endswith('.xlsx'):
-           # return pd.read_excel(file_path, engine='openpyxl')
-        #elif file_path.endswith('.xls'):
-           # return pd.read_excel(file_path, engine='xlrd')
-        #else:
-           # raise ValueError("文件格式不支持：仅支持 .xlsx 和 .xls 文件")
         if file_path.endswith('.xlsx'):
             xls = pd.ExcelFile(file_path, engine='openpyxl')
         elif file_path.endswith('.xls'):
@@ -161,6 +177,8 @@ def merge_excel_files(file_paths, output_path):
                         filtered = process_pedestal(filtered)
                         #filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
                     if material == '角钢':
+                        if filtered.empty:
+                            print("filtered 是否为空:", filtered.empty)
                         filtered = process_angle_steel(filtered)
                         #filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
                     if material == '钢管':
