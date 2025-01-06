@@ -164,7 +164,7 @@ def merge_excel_files(file_paths, output_path):
             g_paint_modified.to_excel(writer, sheet_name='镀锌G总', index=False)
 
             for material, prefixes in material_types.items():
-                filtered = g_paint_modified[g_paint_modified['规格'].str.find(tuple(prefixes))]
+                filtered = g_paint_modified[g_paint_modified['规格'].str.startswith(tuple(prefixes))]
                 if not filtered.empty:
                     filtered = filtered[['规格', '数量']]
                     if material == '扁钢':
