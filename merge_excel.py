@@ -100,7 +100,7 @@ def process_steel_pipe(filtered):
         parts = spec.split('-')
         if len(parts) > 1:
             filtered.at[index, '规格'] = parts[0]
-            filtered.at[index, '长度'] = parts[1]
+            filtered.at[index, '长度'] = int(parts[1])
     
     return filtered
 
@@ -108,8 +108,19 @@ def merge_excel_files(file_paths, output_path):
     merged_df = pd.DataFrame()
     
     for file_path in file_paths:
-        xls = pd.ExcelFile(file_path)
-        
+        #if file_path.endswith('.xlsx'):
+           # return pd.read_excel(file_path, engine='openpyxl')
+        #elif file_path.endswith('.xls'):
+           # return pd.read_excel(file_path, engine='xlrd')
+        #else:
+           # raise ValueError("文件格式不支持：仅支持 .xlsx 和 .xls 文件")
+        if file_path.endswith('.xlsx'):
+            xls = pd.ExcelFile(file_path, engine='openpyxl')
+        elif file_path.endswith('.xls'):
+            xls = pd.ExcelFile(file_path, engine='xlrd')
+        else:
+           raise ValueError("文件格式不支持：仅支持 .xlsx 和 .xls 文件")
+
         for sheet_name in xls.sheet_names:
             df = pd.read_excel(xls, sheet_name=sheet_name, header=0)
             
@@ -178,7 +189,7 @@ def merge_excel_files(file_paths, output_path):
                         #filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
                     if material == '钢管':
                         filtered = process_steel_pipe(filtered)
-                    filtered.to_excel(writer, sheet_name=f'{material}Y', index=False)
+                    filtered.to_excel(writer, sheet_name=f'{material}G', index=False)
 
 if __name__ == "__main__":
     excel_files = [os.path.join(os.getcwd(), f) 
