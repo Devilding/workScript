@@ -1,0 +1,2 @@
+build/excel_merger_gui/excel_merger_gui.pkg filter=lfs diff=lfs merge=lfs -text
+build/excel_merger_gui.exe filter=lfs diff=lfs merge=lfs -text
