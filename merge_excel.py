@@ -18,7 +18,7 @@ def process_flat_bars(filtered):
     e = pd.to_numeric(split_cols[4], errors='coerce').fillna(0)
     
     filtered.loc[a == 'FB', '长度'] = c + 2*d - 10
-    filtered.loc[a == 'FBF', '长度'] = d + 2*e - 10
+    filtered.loc[a == 'FBF', '长度'] = c + 2*e - 10
     filtered.loc[a == 'FBZ', '长度'] = c + 2*d + 250 - 15
 
     filtered = filtered.groupby('规格', as_index=False).agg({
